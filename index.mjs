@@ -7,6 +7,24 @@ const rootDir = process.cwd();
 const port = 3000;
 const app = express();
 
+const coffee = [{
+  name: "Americano",
+  image: "/static/img/americano.jpg",
+  price: 999,
+},
+{
+  name: "Cappuccino",
+  image: "/static/img/cappuccino.jpg",
+  price: 999
+},
+{
+  name: "Latte",
+  image: "/static/img/latte.jpg",
+  price: 999
+}];
+
+app.use(cookieParser());
+app.use('/static', express.static('static'));
 // Выбираем в качестве движка шаблонов Handlebars
 app.set("view engine", "hbs");
 // Настраиваем пути и дефолтный view
@@ -21,37 +39,61 @@ app.engine(
 );
 
 app.get("/", (_, res) => {
-  res.sendFile(path.join(rootDir, "/static/html/index.html"));
+  res.redirect("/menu")
 });
 
 app.get("/menu", (_, res) => {
   res.render("menu", {
     layout: "default",
-    items: [
-      {
-        name: "Americano",
-        image: "/static/img/americano.jpg",
-        price: 999,
-      },
-      { name: "Cappuccino", image: "/static/img/cappuccino.jpg", price: 999 },
-    ],
+    items: coffee
   });
 });
 
 app.get("/buy/:name", (req, res) => {
-  res.status(501).end();
+    let cart;
+    if(req.cookies.cart) 
+      cart = req.cookies.cart;
+    else 
+      cart = [];
+    cart.push(req.params.name);
+    res.cookie('cart', cart);
+    res.redirect("/menu");
 });
 
 app.get("/cart", (req, res) => {
-  res.status(501).end();
+    let _cart;
+    if(req.cookies.cart)
+      _cart = req.cookies.cart;
+    else 
+      _cart = [];
+    const cart = _cart.map(element => coffee.find(coffee => coffee.name === element));
+    res.render('cart', {
+        layout: 'default',
+        fullPrice: cart.reduce((summ, curVal) => curVal.price + summ, 0),
+        items: cart
+    });
 });
 
 app.post("/cart", (req, res) => {
-  res.status(501).end();
+  res.cookie('cart', []);
+  res.redirect('/menu');
 });
 
 app.get("/login", (req, res) => {
-  res.status(501).end();
+  let username;
+  
+  if (req.query.username) 
+    username = req.query.username;
+  else if (req.cookies.username) 
+    username = req.cookies.username;
+  else 
+    username = "Аноним"
+
+    res.cookie("username", username);
+    res.render('login', {
+        layout: 'default',
+        username: username 
+    });
 });
 
 app.listen(port, () => console.log(`App listening on port ${port}`));
